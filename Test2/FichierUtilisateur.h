@@ -2,6 +2,16 @@
 #define FICHIER_UTILISATEUR_H
 
 #define FICHIER_UTILISATEURS "utilisateurs.dat"
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <iostream>
+#include <cstring>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+using namespace std;
+
 
 // Pour le fichier des utilisateurs
 typedef struct
@@ -15,7 +25,7 @@ int estPresent(const char* nom);
 //           0 si pas trouve
 //           la position (1,2,3, ...) dans le fichier si trouve
 
-int hash(const char* motDePasse);
+int Hash(const char* motDePasse);
 // calcul le hash du mot de passe = (somme des codes ASCII) % 97
 
 void ajouteUtilisateur(const char* nom, const char* motDePasse);

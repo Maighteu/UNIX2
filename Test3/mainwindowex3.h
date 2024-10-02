@@ -2,6 +2,9 @@
 #define MAINWINDOWEX3_H
 
 #include <QMainWindow>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <errno.h>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindowEx3; }
@@ -15,6 +18,7 @@ public:
     MainWindowEx3(QWidget *parent = nullptr);
     ~MainWindowEx3();
 
+    int idfils();
     void setGroupe1(const char* Text);
     void setGroupe2(const char* Text);
     void setGroupe3(const char* Text);

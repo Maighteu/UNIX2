@@ -17,6 +17,7 @@ public:
 
     void setNom(const char* Text);
     void setEmail(const char* Text);
+    void SetCurrentUser();
 
 private slots:
     void on_pushButtonSuivant_clicked();

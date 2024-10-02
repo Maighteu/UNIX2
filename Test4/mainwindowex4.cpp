@@ -149,7 +149,52 @@ const char* MainWindowEx4::getGroupe3()
 void MainWindowEx4::on_pushButtonDemarrerTraitements_clicked()
 {
   fprintf(stderr,"Clic sur le bouton Demarrer Traitements\n");
-  // TO DO
+  int idFils1,idFils2,idFils3, valRet, status;
+  
+  if (traitement1Selectionne()==1)
+    {
+      #ifdef DEBUG
+      printf("\n1 is checked\n");
+      #endif
+
+      idFils1 = idfils();
+
+      if (!idFils1)
+      {
+        execl("./Traitement", "./Traitement", getGroupe1(), 200,(char*)NULL);
+      }
+    }
+    if (traitement2Selectionne()==1)
+    {
+      #ifdef DEBUG
+      printf("\n2 is checked\n");
+      #endif
+      idFils2 = idfils();
+      
+      if(!idFils2)
+      {
+        execl("./Traitement", "./Traitement", getGroupe2(), 450,(char*)NULL);
+      }
+    }
+    if (traitement3Selectionne()==1)
+    {
+      #ifdef DEBUG
+      printf("\n3 is checked\n");
+      #endif
+
+      idFils3 = idfils();
+
+      if (!idFils3)
+      {
+        execl("./Lecture", "./Lecture", getGroupe3(), 700,(char*)NULL);
+      }
+    }
+      while((valRet = wait(&status)) != -1)
+  {
+    if(valRet == idFils1) setResultat1(WEXITSTATUS(status));
+    if(valRet == idFils2) setResultat2(WEXITSTATUS(status));
+    if(valRet == idFils3) setResultat3(WEXITSTATUS(status));
+  }
 }
 
 void MainWindowEx4::on_pushButtonVider_clicked()
@@ -161,7 +206,7 @@ void MainWindowEx4::on_pushButtonVider_clicked()
 void MainWindowEx4::on_pushButtonQuitter_clicked()
 {
   fprintf(stderr,"Clic sur le bouton Quitter\n");
-  // TO DO
+  exit (0);
 }
 
 void MainWindowEx4::on_pushButtonAnnuler1_clicked()
@@ -193,3 +238,14 @@ void MainWindowEx4::on_pushButtonAnnulerTous_clicked()
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // TO DO : HandlerSIGCHLD
+
+int MainWindowEx4::idfils()
+{      
+  int fils;
+  if ((fils = fork()) == -1)
+  {
+    perror("(PERE) Erreur de fork()");
+    exit(1);
+  }
+  return fils;
+}

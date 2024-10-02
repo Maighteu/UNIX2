@@ -128,20 +128,43 @@ void MyWindow::videTableUtilisateurs()
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void MyWindow::on_pushButtonLogin_clicked()
 {
+  int pos;
   // Récupération nom et mot de passe
   char nom[20],motDePasse[20];
   int nouvelUtilisateur;
   strcpy(nom,getNom());
   strcpy(motDePasse,getMotDePasse());
   nouvelUtilisateur = isNouveauChecked();
+  if  (nouvelUtilisateur ==1)
+  {
+    ajouteUtilisateur(nom, motDePasse);
+    printf("new user added");
+    setResultat("Nouvel Utilisateur ajouté");
 
-  // TO DO
-  printf("Clic sur bouton LOGIN : --%s--%s--%d--\n",nom,motDePasse,nouvelUtilisateur);
+  }
+  pos =estPresent(nom);
+  if (pos > -1)
+    {
+      if (verifieMotDePasse(pos, nom)== 1) setResultat("connection autorisée");
+      else setResultat("connection interdite");
+    }
+  else setResultat("pas d'utilisateur");
+
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void MyWindow::on_pushButtonAfficheFichier_clicked()
 {
-  // TO DO
-  printf("Clic sur bouton AFFICHER\n");
+    int i, max;
+  UTILISATEUR tab[10];
+ max = listeUtilisateurs(tab);
+  if (max >0)
+  {
+    videTableUtilisateurs();
+    for (i=0;i<max;i++)
+    {
+      ajouteTupleTableUtilisateurs(tab[i].nom,tab[i].hash);
+    }
+  }
+  setResultat("Liste Utilisateur");
 }

@@ -1,6 +1,10 @@
 #include "mainwindowex3.h"
 #include "ui_mainwindowex3.h"
 
+
+
+pid_t fork(void);
+
 MainWindowEx3::MainWindowEx3(QWidget *parent):QMainWindow(parent),ui(new Ui::MainWindowEx3)
 {
     ui->setupUi(this);
@@ -137,18 +141,79 @@ const char* MainWindowEx3::getGroupe3()
 void MainWindowEx3::on_pushButtonLancerRecherche_clicked()
 {
   fprintf(stderr,"Clic sur le bouton Lancer Recherche\n");
-  // TO DO
-  int idFils1,idFils2,idFils3;
+  int idFils1,idFils2,idFils3, valRet, status;
+  if (recherche1Selectionnee()==1)
+    {
+      #ifdef DEBUG
+      printf("\n1 is checked\n");
+      #endif
+
+      idFils1 = idfils();
+
+      if (!idFils1)
+      {
+        execl("./Lecture", "./Lecture", getGroupe1(), (char*)NULL);
+      }
+    }
+    if (recherche2Selectionnee()==1)
+    {
+      #ifdef DEBUG
+      printf("\n2 is checked\n");
+      #endif
+      idFils2 = idfils();
+      
+      if(!idFils2)
+      {
+        execl("./Lecture", "./Lecture", getGroupe2(), (char*)NULL);
+      }
+    }
+    if (recherche3Selectionnee()==1)
+    {
+      #ifdef DEBUG
+      printf("\n3 is checked\n");
+      #endif
+
+      idFils3 = idfils();
+
+      if (!idFils3)
+      {
+        execl("./Lecture", "./Lecture", getGroupe3(), (char*)NULL);
+      }
+    }
+
+  while((valRet = wait(&status)) != -1)
+  {
+    if(valRet == idFils1) setResultat1(WEXITSTATUS(status));
+    if(valRet == idFils2) setResultat2(WEXITSTATUS(status));
+    if(valRet == idFils3) setResultat3(WEXITSTATUS(status));
+  }
 }
+
 
 void MainWindowEx3::on_pushButtonVider_clicked()
 {
   fprintf(stderr,"Clic sur le bouton Vider\n");
-  // TO DO
+  setGroupe1("");
+  setGroupe2("");
+  setGroupe3("");
+  ui->lineEditResultat1->clear();
+  ui->lineEditResultat2->clear();
+  ui->lineEditResultat3->clear();
 }
 
 void MainWindowEx3::on_pushButtonQuitter_clicked()
 {
   fprintf(stderr,"Clic sur le bouton Quitter\n");
-  // TO DO
+  close();
+}
+
+int MainWindowEx3::idfils()
+{      
+  int fils;
+  if ((fils = fork()) == -1)
+  {
+    perror("(PERE) Erreur de fork()");
+    exit(1);
+  }
+  return fils;
 }

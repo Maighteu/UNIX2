@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include <stdio.h>
+
 int i = 1;
 
 typedef struct
@@ -29,8 +30,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) , ui(new Ui::MainW
   ui->setupUi(this);
 
   //***** A modifier ***********************
-  setNom(Elm[i].nom);
-  setEmail(Elm[i].email);
+  MainWindow::SetCurrentUser();
   //****************************************
 }
 
@@ -75,8 +75,7 @@ void MainWindow::on_pushButtonSuivant_clicked()
     printf("\nlimite de droite atteinte\n");
     i--;
   }
-  setNom(Elm[i].nom);
-  setEmail(Elm[i].email);
+  SetCurrentUser();
 
 }
 
@@ -88,9 +87,13 @@ void MainWindow::on_pushButtonPrecedent_clicked()
     printf("\nlimite de gauche atteinte\n");
     i++;
   }
+  SetCurrentUser();
+
+}
+void MainWindow::SetCurrentUser()
+{
   setNom(Elm[i].nom);
   setEmail(Elm[i].email);
-
 }
 
 void MainWindow::on_pushButtonQuitter_clicked()
