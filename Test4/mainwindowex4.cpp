@@ -1,10 +1,10 @@
 #include "mainwindowex4.h"
 #include "ui_mainwindowex4.h"
-
+#include <signal.h>
 extern MainWindowEx4 *w;
 
 int idFils1, idFils2, idFils3;
-// TO DO : HandlerSIGCHLD
+void HandlerSIGCHLD(int);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -153,6 +153,7 @@ void MainWindowEx4::on_pushButtonDemarrerTraitements_clicked()
   
   if (traitement1Selectionne()==1)
     {
+      
       #ifdef DEBUG
       printf("\n1 is checked\n");
       #endif
@@ -161,6 +162,10 @@ void MainWindowEx4::on_pushButtonDemarrerTraitements_clicked()
 
       if (!idFils1)
       {
+        sigset_t mask;
+        sigfillset(&mask);
+        sigdelset(&mask, SIGCHILD);
+        sigprocmask(SIG_SETMASK, &mask, NULL);
         execl("./Traitement", "./Traitement", getGroupe1(), 200,(char*)NULL);
       }
     }
@@ -173,6 +178,10 @@ void MainWindowEx4::on_pushButtonDemarrerTraitements_clicked()
       
       if(!idFils2)
       {
+        sigset_t mask;
+        sigfillset(&mask);
+        sigdelset(&mask, SIGCHILD);
+        sigprocmask(SIG_SETMASK, &mask, NULL);
         execl("./Traitement", "./Traitement", getGroupe2(), 450,(char*)NULL);
       }
     }
@@ -186,7 +195,11 @@ void MainWindowEx4::on_pushButtonDemarrerTraitements_clicked()
 
       if (!idFils3)
       {
-        execl("./Lecture", "./Lecture", getGroupe3(), 700,(char*)NULL);
+        sigset_t mask;
+        sigfillset(&mask);
+        sigdelset(&mask, SIGCHILD);
+        sigprocmask(SIG_SETMASK, &mask, NULL);
+        execl("./Traitement", "./Traitement", getGroupe3(), 700,(char*)NULL);
       }
     }
       while((valRet = wait(&status)) != -1)
@@ -237,7 +250,10 @@ void MainWindowEx4::on_pushButtonAnnulerTous_clicked()
 /////// Handlers de signaux //////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// TO DO : HandlerSIGCHLD
+void HandlerSIGCHLD(int)
+{
+  printf("Id du Thread reçu: %u\n",pthread_self());
+}
 
 int MainWindowEx4::idfils()
 {      
