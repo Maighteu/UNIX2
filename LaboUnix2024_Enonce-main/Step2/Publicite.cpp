@@ -46,12 +46,11 @@ int main()
   // Mise en place de la publicité en mémoire partagée
   char pub[51];
   strcpy(pub,"Bienvenue sur le site du Maraicher en ligne !");
-
   for (int i=0 ; i<=50 ; i++) pShm[i] = ' ';
   pShm[50] = '\0';
   int indDebut = 25 - strlen(pub)/2;
   for (int i=0 ; i<strlen(pub) ; i++) pShm[indDebut + i] = pub[i];
-
+    printf("%s \n", pub);
   while(1)
   {
     MESSAGE msg;
@@ -61,14 +60,13 @@ int main()
     msgsnd(idQ, &msg, sizeof(MESSAGE) - sizeof(long), 0);
     sleep(1); 
 
-    // Decallage vers la gauche
     char c = pShm[0];
     for (int i = 0; i<50;i++)
     {
       pShm[i] = pShm[i+1];
     }
-    pShm[50] = c;
-    pShm[51] = '\0';
+    pShm[49] = c;
+    pShm[50] = '\0';
 
   }
 }

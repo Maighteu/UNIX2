@@ -63,6 +63,8 @@ int main()
   afficheTab();
 
   // Creation du processus Publicite (étape 2)
+  system("ps -ef | grep Publicite | grep -v grep | awk '{print $2}' | xargs kill -9");
+
    if ((pidPublicite = fork()) == -1)
   {
     // Note : Supprimer la file de message.
