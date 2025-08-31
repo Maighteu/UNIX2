@@ -11,6 +11,7 @@
 #include <signal.h>
 #include <string.h>
 #include <unistd.h>
+#include "Login.h"
 #include "protocole.h" // contient la cle et la structure d'un message
 
 int idQ,idShm,idSem;
@@ -81,11 +82,15 @@ int main()
 
     switch(m.requete)
     {
-      case CONNECT :  while(i<6)
+      case CONNECT :  
+                      printf("on fait le connect\n");
+
+      while(i<6)
                       {
                         if (tab->connexions[i].pidFenetre == 0)
                         {
                           tab->connexions[i].pidFenetre = m.expediteur;
+                          break;
                         }
                         else i++;
                       }
@@ -94,7 +99,7 @@ int main()
                         reponse.type = m.expediteur;
                         reponse.expediteur = tab->pidServeur;
                         reponse.requete = BUSY;
-                        msgsnd(idQ, &m, sizeof(MESSAGE) - sizeof(long), 0);
+                        msgsnd(idQ, &reponse, sizeof(MESSAGE) - sizeof(long), 0);
                       }
                       fprintf(stderr,"(SERVEUR %d) Requete CONNECT reçue de %d\n",getpid(),m.expediteur);
                       break;
@@ -102,7 +107,76 @@ int main()
       case DECONNECT : // TO DO
                       fprintf(stderr,"(SERVEUR %d) Requete DECONNECT reçue de %d\n",getpid(),m.expediteur);
                       break;
-      case LOGIN :    // TO DO
+      case LOGIN :    
+                      printf("on fait le login\n");
+                      while(i<6)
+                      {
+
+                        if (tab->connexions[i].pidFenetre == m.expediteur)
+                        {
+                          printf("notre pid est trouvé\n");
+                          //CREATE
+                          if(m.data1 == 1)
+                          {
+                            printf("enter create\n");
+                            if(rechercheUser(m.data2)<0)
+                            {
+                            printf("recherche ne trouve pas de client donc le crée\n");
+
+                              addUser(m.data2,m.data3);
+                              reponse.data1 = 1;
+                              strcpy(reponse.data4,"Client créé et connecté");
+
+                            }
+
+                            else
+                            {
+                              printf("compte impossible à créer\n");
+                              reponse.data1 = 0;
+                              strcpy(reponse.data4,"Un compte existe deja avec cet identifiant");
+                            }
+                          }
+
+
+                        //Login
+                          else if(m.data1 == 0)
+                          {
+                            printf("enter login\n");
+                            bool exist;
+                            exist = authenticate(m.data2,m.data3);
+                            if (exist == true)
+                            {
+                              printf("authenticate reussi\n");
+                              reponse.data1 = 1;
+                              strcpy(reponse.data4,"Client Connecté");
+                            }
+                            else
+                            {
+                              printf("authenticate failed\n");
+                              reponse.data1 = 0;
+                              strcpy(reponse.data4,"Login incorrect");
+                            }
+                          }
+                          break;
+                        }
+
+                        else i++;
+                      }
+                      if (i>=6)
+                      {
+
+                        reponse.requete = BUSY;
+                      }
+                      else 
+                      {
+                        reponse.requete = LOGIN;
+                      }
+                      reponse.expediteur = tab->pidServeur;
+
+                      reponse.type = m.expediteur;
+
+                      msgsnd(idQ, &reponse, sizeof(MESSAGE) - sizeof(long), 0);
+ 
                       fprintf(stderr,"(SERVEUR %d) Requete LOGIN reçue de %d : --%d--%s--%s--\n",getpid(),m.expediteur,m.data1,m.data2,m.data3);
                       break; 
 

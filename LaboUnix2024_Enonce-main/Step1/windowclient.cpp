@@ -72,6 +72,7 @@ WindowClient::WindowClient(QWidget *parent) : QMainWindow(parent), ui(new Ui::Wi
     req.expediteur = pidClient;
     req.requete = CONNECT;
     msgsnd(idQ, &req,sizeof(MESSAGE)-sizeof(long),0);
+
     // Exemples à supprimer
     setPublicite("Promotions sur les concombres !!!");
     setArticle("pommes",5.53,18,"pommes.jpg");
@@ -324,8 +325,15 @@ void WindowClient::closeEvent(QCloseEvent *event)
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void WindowClient::on_pushButtonLogin_clicked()
 {
-    // Envoi d'une requete de login au serveur
-    // TO DO
+    MESSAGE msg;
+    msg.type = 1;
+    msg.requete = LOGIN;
+    msg.expediteur = pidClient;
+
+    msg.data1 = isNouveauClientChecked();
+    strcpy(msg.data2,getNom());
+    strcpy(msg.data3,getMotDePasse());
+    msgsnd(idQ, &msg, sizeof(MESSAGE) - sizeof(long), 0);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -414,9 +422,23 @@ void handlerSIGUSR1(int sig)
   
     if (msgrcv(idQ,&m,sizeof(MESSAGE)-sizeof(long),getpid(),0) != -1)  // !!! a modifier en temps voulu !!!
     {
+     printf("%d \n", m.requete);
+
       switch(m.requete)
       {
         case LOGIN :
+                    printf("Login back recu\n");
+                    printf("%s \n", m.data4);
+                    if (m.data1 == 1) // Login réussi
+                    {
+                      logged = true;
+                      w->loginOK();
+                      w->dialogueMessage("Connexion réussie", m.data4);
+                    }
+                    else // Login échoué
+                    {
+                      w->dialogueErreur("Echec de connexion", m.data4);
+                    }
                     break;
 
         case CONSULT : // TO DO (étape 3)
@@ -431,13 +453,17 @@ void handlerSIGUSR1(int sig)
          case TIME_OUT : // TO DO (étape 6)
                     break;
 
-         case BUSY : // TO DO (étape 7)
+         case BUSY :
+                    printf("Server is busy\n");
+                    w->dialogueErreur("Serveur busy", "Fermer un autre client");
+
                     break;
 
          default :
                     break;
       }
     }
+    else printf("j'ai rien lu");
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////

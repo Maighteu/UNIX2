@@ -36,5 +36,7 @@ Caddie:	Caddie.cpp
 AccesBD:	AccesBD.cpp
 		g++ -o AccesBD AccesBD.cpp -I/usr/include/mysql -m64 -L/usr/lib64/mysql -lmysqlclient -lpthread -lz -lm -lrt -lssl -lcrypto -ldl
 
-Serveur:	Serveur.cpp
-		g++ Serveur.cpp -o Serveur -I/usr/include/mysql -m64 -L/usr/lib64/mysql -lmysqlclient -lpthread -lz -lm -lrt -lssl -lcrypto -ldl
+Serveur:	Serveur.cpp Login.o
+		g++ -o Serveur Serveur.cpp Login.o -I/usr/include/mysql -m64 -L/usr/lib64/mysql -lmysqlclient -lpthread -lz -lm -lrt -lssl -lcrypto -ldl
+Login.o:	Login.cpp
+		g++ -c Login.cpp -o Login.o 
