@@ -58,7 +58,7 @@ bool authenticate(const char* identifiant, const char* password)
 	{
 		if (existingHash == hash(password))
 		{
-				  printf("user found \n");
+				  printf("user added \n");
 
 			return true;
 		}

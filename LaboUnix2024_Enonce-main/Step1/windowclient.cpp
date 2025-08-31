@@ -310,12 +310,16 @@ void WindowClient::dialogueErreur(const char* titre,const char* message)
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void WindowClient::closeEvent(QCloseEvent *event)
 {
-  // TO DO (étape 1)
-  // Envoi d'une requete DECONNECT au serveur
-
-  // envoi d'un logout si logged
-
-  // Envoi d'une requete de deconnexion au serveur
+  MESSAGE msg;
+  msg.type = 1;
+  msg.expediteur = pidClient;
+  if(logged)
+  {
+    msg.requete = LOGOUT;
+    msgsnd(idQ, &msg, sizeof(MESSAGE) - sizeof(long), 0);
+  }
+    msg.requete = DECONNECT;
+    msgsnd(idQ, &msg, sizeof(MESSAGE) - sizeof(long), 0);
 
   exit(0);
 }
@@ -342,8 +346,16 @@ void WindowClient::on_pushButtonLogout_clicked()
     // Envoi d'une requete CANCEL_ALL au serveur (au cas où le panier n'est pas vide)
     // TO DO
 
-    // Envoi d'une requete de logout au serveur
-    // TO DO
+    MESSAGE msg;
+    msg.type = 1;
+    msg.expediteur = pidClient;
+    msg.requete = CANCEL_ALL;
+    msgsnd(idQ, &msg, sizeof(MESSAGE) - sizeof(long), 0);
+    msg.requete = LOGOUT;
+    msgsnd(idQ, &msg, sizeof(MESSAGE) - sizeof(long), 0);
+    logged = false;
+logoutOK();
+dialogueMessage("Disconnect", "User disconnected");
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -460,10 +472,11 @@ void handlerSIGUSR1(int sig)
                     break;
 
          default :
+         printf("Bienvenue dans le default\n");
                     break;
       }
     }
-    else printf("j'ai rien lu");
+    else printf("j'ai rien lu\n");
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -85,7 +85,7 @@ int main()
       case CONNECT :  
                       printf("on fait le connect\n");
 
-      while(i<6)
+                      while(i<6)
                       {
                         if (tab->connexions[i].pidFenetre == 0)
                         {
@@ -96,15 +96,27 @@ int main()
                       }
                       if (i>=6)
                       {
-                        reponse.type = m.expediteur;
-                        reponse.expediteur = tab->pidServeur;
+                        
                         reponse.requete = BUSY;
-                        msgsnd(idQ, &reponse, sizeof(MESSAGE) - sizeof(long), 0);
                       }
+
+                      else reponse.requete = CONNECT;
+                      reponse.type = m.expediteur;
+                      reponse.expediteur = tab->pidServeur;
+                      msgsnd(idQ, &reponse, sizeof(MESSAGE) - sizeof(long), 0);
+                      kill(m.expediteur, SIGUSR1);
+
                       fprintf(stderr,"(SERVEUR %d) Requete CONNECT reçue de %d\n",getpid(),m.expediteur);
                       break;
 
-      case DECONNECT : // TO DO
+      case DECONNECT :
+                    while(i<6)
+                    {
+                      if (tab->connexions[i].pidFenetre == m.expediteur)
+                      { tab->connexions[i].pidFenetre = 0;
+                        break;}
+                      else i++;
+                    }
                       fprintf(stderr,"(SERVEUR %d) Requete DECONNECT reçue de %d\n",getpid(),m.expediteur);
                       break;
       case LOGIN :    
@@ -149,6 +161,7 @@ int main()
                               printf("authenticate reussi\n");
                               reponse.data1 = 1;
                               strcpy(reponse.data4,"Client Connecté");
+                              strcpy(tab->connexions[i].nom, m.data2);
                             }
                             else
                             {
@@ -169,18 +182,29 @@ int main()
                       }
                       else 
                       {
-                        reponse.requete = LOGIN;
+                          reponse.requete = LOGIN;
                       }
                       reponse.expediteur = tab->pidServeur;
 
                       reponse.type = m.expediteur;
-
+                      printf("%d \n", reponse.requete);
                       msgsnd(idQ, &reponse, sizeof(MESSAGE) - sizeof(long), 0);
- 
+                      kill(m.expediteur, SIGUSR1);
                       fprintf(stderr,"(SERVEUR %d) Requete LOGIN reçue de %d : --%d--%s--%s--\n",getpid(),m.expediteur,m.data1,m.data2,m.data3);
                       break; 
 
-      case LOGOUT :   // TO DO
+      case LOGOUT :   
+                    printf("logout recu\n");
+                      while(i<6)
+                    {
+                      if (tab->connexions[i].pidFenetre == m.expediteur) 
+                        {
+                          strcpy(tab->connexions[i].nom , "");
+                          tab->connexions[i].pidCaddie = 0;
+                          break;
+                        }
+                      else i++;
+                    }
                       fprintf(stderr,"(SERVEUR %d) Requete LOGOUT reçue de %d\n",getpid(),m.expediteur);
                       break;
 
