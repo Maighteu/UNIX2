@@ -64,6 +64,7 @@ int main()
 
   while(1)
   {
+    // Envoi d'une requete UPDATE_PUB au serveur
     MESSAGE message;
     message.type = 1;
     message.expediteur = pidPublicite;
@@ -71,6 +72,8 @@ int main()
 
     if (msgsnd(idQ, &message, sizeof(MESSAGE) - sizeof(long), 0) == -1)
       fprintf(stderr, "(PUBLICITE %d) (ERROR) Erreur de msgsnd()\n", pidPublicite);
+    // else
+    //   fprintf(stderr, "(PUBLICITE %d) (SUCCESS) Requete UPDATE_PUB envoyee\n", pidPublicite);
 
     sleep(1); 
 

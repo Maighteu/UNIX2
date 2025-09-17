@@ -431,7 +431,6 @@ void WindowClient::on_pushButtonLogout_clicked()
   printf("(CLIENT %d) (SUCCESS) Envoi de la requete d'annulation du panier reussie\n", pidClient);
 
   // Envoi d'une requete de logout au serveur
-  // TO DO
   message.type = 1;
   message.requete = LOGOUT;
   message.expediteur = pidClient;
@@ -451,7 +450,6 @@ void WindowClient::on_pushButtonLogout_clicked()
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void WindowClient::on_pushButtonSuivant_clicked()
 {
-  // TO DO (étape 3)
   // Envoi d'une requete CONSULT au serveur
   MESSAGE message;
   message.type = 1;
@@ -470,7 +468,6 @@ void WindowClient::on_pushButtonSuivant_clicked()
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void WindowClient::on_pushButtonPrecedent_clicked()
 {
-  // TO DO (étape 3)
   // Envoi d'une requete CONSULT au serveur
   MESSAGE message;
   message.type = 1;
@@ -492,7 +489,22 @@ void WindowClient::on_pushButtonPrecedent_clicked()
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void WindowClient::on_pushButtonAcheter_clicked()
 {
-    // TO DO (étape 5)
+    if (getQuantite() ==0) return;
+
+    MESSAGE message;
+    message.type = 1;
+    message.requete = ACHAT;
+    message.expediteur = pidClient;
+    message.data1 = articleEnCours.id;
+    char quantite[3] ="";
+    sprintf(quantite, "%d", getQuantite());
+    strcpy(message.data2, quantite);
+    if (msgsnd(idQ, &message, sizeof(MESSAGE) - sizeof(long), 0) == -1)
+  {
+    dialogueErreur("Erreur", "Impossible d'envoyer la requête ACHAT");
+    fprintf(stderr, "(CLIENT %d) (ERROR) Erreur de msgsnd()\n", pidClient);
+  }
+  printf("(CLIENT %d) (SUCCESS) Envoi de la requete ACHAT reussi\n", pidClient);
     // Envoi d'une requete ACHAT au serveur
 }
 
@@ -563,7 +575,7 @@ void handlerSIGUSR1(int signal)
       {
         logged = true;
         w->loginOK();
-        w->dialogueMessage("Connected", m.data4);
+        w->dialogueMessage("Connexion réussie", m.data4);
 
         articleEnCours.id = 1;
         m.type = 1;

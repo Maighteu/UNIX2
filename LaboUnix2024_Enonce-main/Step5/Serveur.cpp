@@ -37,13 +37,15 @@ void unlogClient(int pidClient);
 void envoyerMessageConsultCaddie(MESSAGE m);
 void mettreAJourPublicite();
 int clientConnecte(int pidClient);
+void envoyerMessageAchatCaddie(MESSAGE m);
+void envoyerMessagePresentCaddie(MESSAGE m);
 void closing(int codeSortie);
 void handlerSIGINT(int signal);
 void handlerSIGCHLD(int signal);
 
 int main()
 {
-  int pidPublicite;
+  int pidPublicite , pidAccesBD;
 
   // Armement des signaux
   // TO DO
@@ -93,6 +95,12 @@ int main()
 
   // Creation du pipe
   // TO DO
+  if (pipe(fdPipe) == -1)
+  {
+    fprintf(stderr, "(SERVEUR %d) (ERROR) Erreur de pipe()\n", pidServeur);
+    closing(1);
+  }
+  printf("(SERVEUR %d) (SUCCESS) pipe  cree\n", pidServeur);
 
   // Initialisation du tableau de connexions
   tab = (TAB_CONNEXIONS*) malloc(sizeof(TAB_CONNEXIONS)); 
@@ -117,6 +125,8 @@ int main()
 
   if (pidPublicite == 0) // Code pour le fils
   {
+    close(fdPipe[0]);
+    close(fdPipe[1]);
     if (execl("./Publicite", "Publicite", NULL) == -1)
     {
       fprintf(stderr, "(PUBLICITE %d) (ERROR) Erreur de execl()\n", getpid());
@@ -127,7 +137,29 @@ int main()
   tab->pidPublicite = pidPublicite;
 
   // Creation du processus AccesBD (étape 4)
-  // TO DO
+  if ((pidAccesBD = fork()) == -1)
+  {
+    fprintf(stderr, "(SERVEUR %d) (ERROR) Erreur de fork()\n", pidServeur);
+    closing(1);
+  }
+
+  char fdRpipe[10] = "";
+  sprintf(fdRpipe, "%d", fdPipe[0]);
+
+  if (pidAccesBD == 0) 
+  {
+    close(fdPipe[1]);
+    
+    if (execl("./AccesBD", "AccesBD", fdRpipe, NULL) == -1)
+    {
+      fprintf(stderr, "(ACCESBD %d) (ERROR) Erreur de execl()\n", getpid());
+      exit(1);
+    }
+  }
+    fprintf(stderr, "(SERVEUR %d) (SUCCES) Acces    cree\n", pidServeur);
+
+// Ajout du pid du processus AccesBD a la table des processus
+tab->pidAccesBD = pidAccesBD;
 
   int retour; // Stocke la valeur de retour de siglongjmp
   MESSAGE m;
@@ -152,41 +184,43 @@ int main()
 
     switch(m.requete)
     {
-      case CONNECT :    // TO DO
+      case CONNECT :    
                         fprintf(stderr,"(SERVEUR %d) (SUCCESS) Requete CONNECT reçue de %d\n",pidServeur,m.expediteur);
                         connectClient(m.expediteur);
                         break;
 
-      case DECONNECT :  // TO DO
+      case DECONNECT :  
                         fprintf(stderr,"(SERVEUR %d) (SUCCESS) Requete DECONNECT reçue de %d\n",pidServeur,m.expediteur);
                         disconnectClient(m.expediteur);
                         break;
-      case LOGIN :      // TO DO
+      case LOGIN :     
                         fprintf(stderr,"(SERVEUR %d) (SUCCESS) Requete LOGIN reçue de %d : --%d--%s--%s--\n",pidServeur,m.expediteur,m.data1,m.data2,m.data3);
                         logClient(m.expediteur, m.data1, m.data2, m.data3);
                         break; 
 
-      case LOGOUT :     // TO DO
+      case LOGOUT :     
                         fprintf(stderr,"(SERVEUR %d) (SUCCESS) Requete LOGOUT reçue de %d\n",pidServeur,m.expediteur);
                         unlogClient(m.expediteur);
                         break;
 
-      case UPDATE_PUB : // TO DO
+      case UPDATE_PUB : 
                         // fprintf(stderr,"(SERVEUR %d) (SUCCESS) Requete UPDATE_PUB reçue de %d\n",pidServeur,m.expediteur); // Note : A enlever
                         mettreAJourPublicite();
                         afficher = false;
                         break;
 
-      case CONSULT :    // TO DO
+      case CONSULT :    
                         fprintf(stderr, "(SERVEUR %d) (SUCCESS) Requete CONSULT reçue de %d\n", pidServeur, m.expediteur);
                         envoyerMessageConsultCaddie(m); // On copie le message car on reutilise ses champs sans modifier le message
                         break;
 
-      case ACHAT :      // TO DO
+      case ACHAT :      
                         fprintf(stderr, "(SERVEUR %d) (SUCCESS) Requete ACHAT reçue de %d\n", pidServeur, m.expediteur);
+                        envoyerMessageAchatCaddie( m);
                         break;
 
-      case CADDIE :     // TO DO
+      case CADDIE :     
+                        envoyerMessagePresentCaddie(m);
                         fprintf(stderr, "(SERVEUR %d) (SUCCESS) Requete CADDIE reçue de %d\n", pidServeur, m.expediteur);
                         break;
 
@@ -243,7 +277,6 @@ void connectClient(int pidClient)
   {
     fprintf(stderr, "(SERVEUR %d) (ERROR) Le serveur n'a plus assez de place pour accepter le client\n", pidServeur);
 
-    // Note : Nécessaire d'envoyer un message BUSY ?
     m.type = pidClient;
     m.requete = BUSY;
     m.expediteur = pidServeur;
@@ -292,8 +325,7 @@ void logClient(int pidClient, int nouveauClient, char *identifiant, char *passwo
 
     envoyerMessage(m);
 
-    if (kill(pidClient, SIGUSR1) == -1)
-    {
+   {
       fprintf(stderr, "(SERVEUR %d) (ERROR) Erreur de kill()\n", pidServeur);
     }
 
@@ -345,16 +377,22 @@ void logClient(int pidClient, int nouveauClient, char *identifiant, char *passwo
         strcpy(m.data4, "Caddie error");
       connexionReussie = false;
     }
-    
+    char fdWpipe[10] = "";
+    sprintf(fdWpipe, "%d", fdPipe[1]);
     if (pidCaddie == 0)
     {
-      if (execl("./Caddie", "Caddie", NULL) == -1)
+      if (execl("./Caddie", "Caddie",fdWpipe, NULL) == -1)
       {
         fprintf(stderr, "(CADDIE) (ERROR) Erreur de execl()\n");
         printf("(CADDIE) (WARNING) Le caddie du client %d ne fonctionnera pas\n", pidClient);
         exit(1);
       }
     }
+    MESSAGE logCaddie;
+    logCaddie.type = pidCaddie;
+    logCaddie.requete = LOGIN;
+    logCaddie.expediteur = pidClient;
+    envoyerMessage(logCaddie);
   }
 
   // S'il n'y a pas d'erreur, on ajoute le client et son Caddie a la table des connexions
@@ -462,32 +500,49 @@ void envoyerMessage(MESSAGE& m)
   }
 }
 
-// Supprime le processus Publicite, la file de message et la memoire partagee
+void envoyerMessageAchatCaddie(MESSAGE m)
+{
+  int posClient;
+
+  if ((posClient = clientConnecte(m.expediteur)) < 0)
+  {
+        fprintf(stderr, "(SERVEUR %d) (ERROR) Le client %d n'a pas ete trouve dans la table de connexion. Impossible de d'envoyer un message CONSULT au Caddie.\n", pidServeur, m.expediteur);
+
+    return;
+  }
+
+  m.type = tab->connexions[posClient].pidCaddie;
+
+  envoyerMessage(m);
+}
+void envoyerMessagePresentCaddie(MESSAGE m)
+{
+  printf("envoie au Caddie%d", m.expediteur);
+  envoyerMessage(m);
+}
 void closing(int codeSortie)
 {
-  // Tuer le processus Publicite
   if (kill(tab->pidPublicite, SIGKILL) == -1)
   {
-    fprintf(stderr, "(SERVEUR %d) (ERROR) Erreur de kill(). Veuillez tuer le processus Publicite manuellement.\n", pidServeur);
+    fprintf(stderr, "(SERVEUR %d) (ERROR) Erreur de kill()\n", pidServeur);
     codeSortie = 1;
   }
   fprintf(stderr, "(SERVEUR %d) (SUCCESS) Processus Publicite tue.\n", pidServeur);
 
-  // Suppression de la file de message
   if (msgctl(idQ, IPC_RMID, NULL) == -1) // Si la file de message n'a pas ete supprime
   {
-    fprintf(stderr, "(SERVEUR %d) (ERROR) Erreur de msgctl(). Veuillez supprimer la file de message manuellement.\n", pidServeur);
+    fprintf(stderr, "(SERVEUR %d) (ERROR) Erreur de msgctl()\n", pidServeur);
     codeSortie = 1;
   }
-  else // Si la file de message a ete supprime
+  else
   {
     printf("(SERVEUR %d) (SUCCESS) File de message supprimee\n", pidServeur);
   }
 
-  // Demande de suppression de la memoire partagee
+
   if (shmctl(idShm, IPC_RMID, NULL) ==-1)
   {
-    fprintf(stderr, "(SERVEUR %d) (ERROR) Erreur de shmctl. Veuillez supprimer la memoire partagee manuellement.\n", pidServeur);
+    fprintf(stderr, "(SERVEUR %d) (ERROR) Erreur de shmctl\n", pidServeur);
     codeSortie = 1;
   }
   else
@@ -495,6 +550,25 @@ void closing(int codeSortie)
     printf("(SERVEUR %d) (SUCCESS) Memoire partagee supprimee\n", pidServeur);
   }
 
+if (close(fdPipe[0]) == -1)
+{
+    fprintf(stderr, "(SERVEUR %d) (ERROR) Erreur de fermeture sortie pipe\n", pidServeur);
+  codeSortie = 1;
+}
+else
+{
+    fprintf(stderr, "(SERVEUR %d) (SUCCESS) sortie pipe ferme\n", pidServeur);
+}
+
+if (close(fdPipe[1]) == -1)
+{
+    fprintf(stderr, "(SERVEUR %d) (ERROR) Erreur de fermeture entree pipe\n", pidServeur);
+  codeSortie = 1;
+}
+else
+{
+    fprintf(stderr, "(SERVEUR %d) (SUCCESS) entree pipe ferme\n", pidServeur);
+}
   exit(codeSortie);
 }
 

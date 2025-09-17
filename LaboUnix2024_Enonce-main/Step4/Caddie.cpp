@@ -20,14 +20,15 @@ ARTICLE articles[10];
 int nbArticles = 0;
 
 int fdWpipe;
-// int pidClient;
+int pidClient;
 int pidCaddie = getpid();
 
 MYSQL* connexion;
 
-void selectionnerArticleBDD(int idArticle, int pidClient);
+void selectionnerArticleBD(int idArticle, int pidClient);
+void envoyerRequeteBD(int idArticle);
 void envoyerMessage(MESSAGE& m);
-void libererRessourcesEtQuitter(int pidServeur);
+void closing(int pidServeur);
 void handlerSIGALRM(int sig);
 
 int main(int argc, char* argv[])
@@ -48,14 +49,7 @@ int main(int argc, char* argv[])
   }
   fprintf(stderr, "(CADDIE %d) (SUCCESS) id de la file de messages recupere\n", pidCaddie);
 
-  // Connexion à la base de donnée
-  connexion = mysql_init(NULL);
-  if (mysql_real_connect(connexion, "localhost", "Student", "PassStudent1_", "PourStudent", 0, 0, 0) == NULL)
-  {
-    fprintf(stderr, "(CADDIE %d) (ERROR) Erreur de connexion à la base de données\n", pidCaddie);
-    exit(1);  
-  }
-  fprintf(stderr, "(CADDIE %d) (SUCCESS) Connection a la base de donnees reussie\n", pidCaddie);
+  
 
   MESSAGE m;
   MESSAGE reponse;
@@ -66,10 +60,11 @@ int main(int argc, char* argv[])
   MYSQL_ROW  Tuple;
 
   // Récupération descripteur écriture du pipe
-  // fdWpipe = atoi(argv[1]);
+  fdWpipe = atoi(argv[1]);
 
   while(1)
   {
+    // fprintf(stderr, "(CADDIE %d) (PROCESS) Attente d'une requete...\n", pidCaddie);
     if (msgrcv(idQ, &m, sizeof(MESSAGE) - sizeof(long), pidCaddie, 0) == -1)
     {
       fprintf(stderr, "(CADDIE %d) (ERROR) Erreur de msgrcv", pidCaddie);
@@ -79,17 +74,19 @@ int main(int argc, char* argv[])
     switch(m.requete)
     {
       case LOGIN :    // TO DO
+                            pidClient = m.expediteur;
+
                       fprintf(stderr,"(CADDIE %d) (SUCCESS) Requete LOGIN reçue de %d\n", pidCaddie, m.expediteur);
                       break;
 
-      case LOGOUT :  
+      case LOGOUT :   // TO DO
                       fprintf(stderr,"(CADDIE %d) (SUCCESS) Requete LOGOUT reçue de %d\n", pidCaddie, m.expediteur);
-                      libererRessourcesEtQuitter(m.expediteur);
+                      closing(m.expediteur);
                       break;
 
-      case CONSULT :  
+      case CONSULT :  // TO DO
                       fprintf(stderr,"(CADDIE %d) (SUCCESS) Requete CONSULT reçue de %d : --%d--\n", pidCaddie, m.expediteur, m.data1);
-                      selectionnerArticleBDD(m.data1, m.expediteur);
+                      envoyerRequeteBD(m.data1);
                       break;
 
       case ACHAT :    // TO DO
@@ -132,13 +129,14 @@ int main(int argc, char* argv[])
   }
 }
 
-void selectionnerArticleBDD(int idArticle, int pidClient)
+void selectionnerArticleBD(int idArticle, int pidClient)
 {
   MESSAGE reponse;
   reponse.type = pidClient;
   reponse.requete = CONSULT;
   reponse.expediteur = pidCaddie;
 
+  // Construction et exécution de la requête
   char requete[256];
 
   sprintf(requete, "select * from UNIX_FINAL where id = %d;", idArticle);
@@ -149,6 +147,7 @@ void selectionnerArticleBDD(int idArticle, int pidClient)
     return;
   }
 
+  // Affichage du Result Set
   MYSQL_RES *ResultSet;
 
   if ((ResultSet = mysql_store_result(connexion)) == NULL) // Si la base de donnees n'a pas envoye de resultat
@@ -158,6 +157,8 @@ void selectionnerArticleBDD(int idArticle, int pidClient)
   }
 
   MYSQL_ROW resultat;
+  // Encodage du resultat dans le message
+  // Note : mysql_fetch_row necessaire ?
   if ((resultat = mysql_fetch_row(ResultSet)) != NULL)
   {
     reponse.data1 = atoi(resultat[0]);
@@ -185,7 +186,7 @@ void envoyerMessage(MESSAGE& m)
 
   if (msgsnd(idQ, &m, sizeof(MESSAGE) - sizeof(long), 0) == -1)
   {
-    fprintf(stderr, "(CADDIE %d) (ERROR) Erreur de msgsnd()\n", pidCaddie);
+    fprintf(stderr, "(CADDIE %d) (ERROR) Erreur de msgsnd() ici\n", pidCaddie);
     return;
   }
 
@@ -195,7 +196,7 @@ void envoyerMessage(MESSAGE& m)
   }
 }
 
-void libererRessourcesEtQuitter(int pidServeur)
+void closing(int pidServeur)
 {
   // Fermer la connexion a la base de donnees
   mysql_close(connexion);
@@ -205,6 +206,34 @@ void libererRessourcesEtQuitter(int pidServeur)
 
   exit(0);
 }
+
+void envoyerRequeteBD(int idArticle)
+{
+  int retour;
+
+  MESSAGE m;
+  m.type = pidCaddie;
+  m.requete = CONSULT;
+  m.expediteur = pidCaddie;
+  m.data1 = idArticle;
+
+  retour = write(fdWpipe, &m, sizeof(MESSAGE));
+
+  if (msgrcv(idQ, &m, sizeof(MESSAGE) - sizeof(long), pidCaddie, 0) == -1)
+  {
+    fprintf(stderr, "(CADDIE %d) (ERROR) Erreur de msgrcv()\n", pidCaddie);
+    exit(1);
+  }
+  fprintf(stderr,"(CADDIE %d) (INFO) Requete CONSULT reçue de %d : --%d--\n", pidCaddie, m.expediteur, m.data1);
+
+  if (m.data1 == -1) return;
+
+  m.type = pidClient;
+  m.expediteur = pidCaddie;
+
+  envoyerMessage(m);
+}
+
 
 void handlerSIGALRM(int sig)
 {

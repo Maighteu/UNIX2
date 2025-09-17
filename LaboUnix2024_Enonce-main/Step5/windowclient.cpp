@@ -431,7 +431,6 @@ void WindowClient::on_pushButtonLogout_clicked()
   printf("(CLIENT %d) (SUCCESS) Envoi de la requete d'annulation du panier reussie\n", pidClient);
 
   // Envoi d'une requete de logout au serveur
-  // TO DO
   message.type = 1;
   message.requete = LOGOUT;
   message.expediteur = pidClient;
@@ -451,7 +450,6 @@ void WindowClient::on_pushButtonLogout_clicked()
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void WindowClient::on_pushButtonSuivant_clicked()
 {
-  // TO DO (étape 3)
   // Envoi d'une requete CONSULT au serveur
   MESSAGE message;
   message.type = 1;
@@ -470,7 +468,6 @@ void WindowClient::on_pushButtonSuivant_clicked()
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void WindowClient::on_pushButtonPrecedent_clicked()
 {
-  // TO DO (étape 3)
   // Envoi d'une requete CONSULT au serveur
   MESSAGE message;
   message.type = 1;
@@ -492,7 +489,22 @@ void WindowClient::on_pushButtonPrecedent_clicked()
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void WindowClient::on_pushButtonAcheter_clicked()
 {
-    // TO DO (étape 5)
+    if (getQuantite() ==0) return;
+
+    MESSAGE message;
+    message.type = 1;
+    message.requete = ACHAT;
+    message.expediteur = pidClient;
+    message.data1 = articleEnCours.id;
+    char quantite[3] ="";
+    sprintf(quantite, "%d", getQuantite());
+    strcpy(message.data2, quantite);
+    if (msgsnd(idQ, &message, sizeof(MESSAGE) - sizeof(long), 0) == -1)
+  {
+    dialogueErreur("Erreur", "Impossible d'envoyer la requête ACHAT");
+    fprintf(stderr, "(CLIENT %d) (ERROR) Erreur de msgsnd()\n", pidClient);
+  }
+  printf("(CLIENT %d) (SUCCESS) Envoi de la requete ACHAT reussi\n", pidClient);
     // Envoi d'une requete ACHAT au serveur
 }
 
@@ -563,7 +575,7 @@ void handlerSIGUSR1(int signal)
       {
         logged = true;
         w->loginOK();
-        w->dialogueMessage("Connected", m.data4);
+        w->dialogueMessage("Connexion réussie", m.data4);
 
         articleEnCours.id = 1;
         m.type = 1;
@@ -585,25 +597,48 @@ void handlerSIGUSR1(int signal)
       break;
 
     case CONSULT : 
-      // TO DO (étape 3)
+
       printf("(CLIENT %d) (SUCCESS) Requete CONSULT recue : --%d--%s--%d--%s--%f--\n", pidClient, m.data1, m.data2, atoi(m.data3), m.data4, m.data5);
 
-      // Note : Convertir les float de la base de donnees en float du C++ ?
-      // Si la requete a echouee
       if (m.data1 == -1) return;
 
-      // On affiche l'article.
       articleEnCours.id = m.data1;
       w->setArticle(m.data2, m.data5, stoi(m.data3), m.data4);
       break;
 
     case ACHAT :
-      // TO DO (étape 5)
+            if (atoi(m.data3) == 0)
+      {
+        w->dialogueErreur("Erreur", "Stock insuffisant");
+        return;
+      }
+      w->dialogueErreur("reussite", "Stock suffisant");
+
+
+      w->videTablePanier();
+      totalCaddie = 0.0;
+      
+      MESSAGE achat;
+      achat.type = 1;
+      achat.expediteur = pidClient;
+      achat.requete = CADDIE;
+      if (msgsnd(idQ, &achat, sizeof(MESSAGE) - sizeof(long), 0) == -1)
+      {
+        w->dialogueMessage("Erreur", "Impossible d'afficher la panier");
+        return;
+      }
       break;
 
     case CADDIE :
-      // TO DO (étape 5)
-      break;
+          /* do
+           {
+            printf("La demande d affiche caddie est fonctionelle\n");
+             printf("(CLIENT %d) (INFO) Requete CADDIE recue : --%d--%s--%s--%s--%f--\n", pidClient, m.data1, m.data2, m.data3, m.data4, m.data5);
+             w->ajouteArticleTablePanier(m.data2, m.data5, atoi(m.data3));
+             totalCaddie += m.data5 * atoi(m.data3);
+             w->setTotal(totalCaddie);
+           } while (msgrcv(idQ, &m, sizeof(MESSAGE) - sizeof(long), getpid(), IPC_NOWAIT) != -1);*/
+       break;
 
     case TIME_OUT :
       // TO DO (étape 6)
